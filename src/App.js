@@ -20,7 +20,13 @@ const AcademiaApp = () => {
     emailEmpresa: '',
     telefoneEmpresa: '',
     responsavel: '',
+    senha: '',
   });
+  const [loginData, setLoginData] = useState({
+    cnpj: '',
+    senha: ''
+  });
+  const [empresasCadastradas, setEmpresasCadastradas] = useState([]);
 
   const [usuarios, setUsuarios] = useState([]);
   const [modoLogin, setModoLogin] = useState(true);
@@ -32,21 +38,49 @@ const AcademiaApp = () => {
   };
 
   const handleLoginEmpresa = () => {
-    if (formEmpresa.cnpj && formEmpresa.nomeEmpresa) {
-      setEmpresaLogada(formEmpresa);
-      alert(`Bem-vindo, ${formEmpresa.nomeEmpresa}!`);
-    } else {
-      alert('Preencha os campos obrigatórios');
+    if (!loginData.cnpj || !loginData.senha) {
+      alert('Preencha CNPJ e senha');
+      return;
     }
+    const empresa = empresasCadastradas.find(e =>
+      e.cnpj.replace(/\D/g, '') === loginData.cnpj.replace(/\D/g, '')
+    );
+    if (!empresa) {
+      alert('Empresa não cadastrada. Faça o cadastro primeiro.');
+      return;
+    }
+    if (empresa.senha !== loginData.senha) {
+      alert('Senha incorreta.');
+      return;
+    }
+    setEmpresaLogada(empresa);
+    alert(`Bem-vindo, ${empresa.nomeEmpresa}!`);
   };
 
-  const handleCadastroEmpresa = () => {
-    if (formEmpresa.nomeEmpresa && formEmpresa.cnpj && formEmpresa.emailEmpresa) {
-      setEmpresaLogada(formEmpresa);
-      alert('Empresa cadastrada com sucesso!');
-    } else {
-      alert('Preencha todos os campos obrigatórios');
+  async function validarCNPJExistente(cnpj) {
+    try {
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj.replace(/\D/g, '')}`);
+      if (!response.ok) return false;
+      const data = await response.json();
+      return !!data.cnpj;
+    } catch {
+      return false;
     }
+  }
+
+  const handleCadastroEmpresa = async () => {
+    if (!(formEmpresa.nomeEmpresa && formEmpresa.cnpj && formEmpresa.emailEmpresa && formEmpresa.senha)) {
+      alert('Preencha todos os campos obrigatórios');
+      return;
+    }
+    const existe = await validarCNPJExistente(formEmpresa.cnpj);
+    if (!existe) {
+      alert('CNPJ não encontrado na base da Receita Federal. Verifique o número informado.');
+      return;
+    }
+    setEmpresasCadastradas(prev => [...prev, { ...formEmpresa }]);
+    setEmpresaLogada(formEmpresa);
+    alert('Empresa cadastrada com sucesso!');
   };
 
   const handleLogoutEmpresa = () => {
@@ -140,24 +174,24 @@ const AcademiaApp = () => {
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2 text-white">Nome da Empresa</label>
+                  <label className="block text-sm font-medium mb-2 text-white">CNPJ</label>
                   <input
                     type="text"
-                    value={formEmpresa.nomeEmpresa}
-                    onChange={(e) => handleInputEmpresa('nomeEmpresa', e.target.value)}
+                    value={loginData.cnpj}
+                    onChange={e => setLoginData(prev => ({ ...prev, cnpj: e.target.value }))}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    placeholder="Ex: Tech Solutions Ltda"
+                    placeholder="00.000.000/0001-00"
                   />
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium mb-2 text-white">CNPJ</label>
+                  <label className="block text-sm font-medium mb-2 text-white">Senha</label>
                   <input
-                    type="text"
-                    value={formEmpresa.cnpj}
-                    onChange={(e) => handleInputEmpresa('cnpj', e.target.value)}
+                    type="password"
+                    value={loginData.senha}
+                    onChange={e => setLoginData(prev => ({ ...prev, senha: e.target.value }))}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    placeholder="00.000.000/0001-00"
+                    placeholder="Digite sua senha"
                   />
                 </div>
 
@@ -220,13 +254,24 @@ const AcademiaApp = () => {
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium mb-2 text-white">Responsável RH</label>
+                  <label className="block text-sm font-medium mb-2 text-white">Responsável</label>
                   <input
                     type="text"
                     value={formEmpresa.responsavel}
                     onChange={(e) => handleInputEmpresa('responsavel', e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     placeholder="Nome do responsável"
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2 text-white">Senha *</label>
+                  <input
+                    type="password"
+                    value={formEmpresa.senha}
+                    onChange={e => handleInputEmpresa('senha', e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Crie uma senha"
                   />
                 </div>
 
