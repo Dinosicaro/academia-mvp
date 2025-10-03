@@ -1,0 +1,1 @@
+Backup dos arquivos do backend removidos do projeto principal. Caso precise restaurar, mova novamente para a pasta /backend.
